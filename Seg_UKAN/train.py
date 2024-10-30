@@ -38,6 +38,7 @@ import subprocess
 
 from pdb import set_trace as st
 
+base_dir = os.path.dirname(__file__)
 
 ARCH_NAMES = ['UKAN']
 LOSS_NAMES = losses.__all__
@@ -320,8 +321,9 @@ def main():
     else:
         raise NotImplementedError
 
-    shutil.copy2('train.py', f'{output_dir}/{exp_name}/')
-    shutil.copy2('archs.py', f'{output_dir}/{exp_name}/')
+    shutil.copy2(os.path.join(base_dir, 'train.py'), f'{output_dir}/{exp_name}/')
+    shutil.copy2(os.path.join(base_dir, 'archs.py'), f'{output_dir}/{exp_name}/')
+
 
     dataset_name = config['dataset']
     img_ext = '.jpg'  # Set your image extension to .jpg
