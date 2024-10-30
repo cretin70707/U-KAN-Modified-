@@ -39,7 +39,7 @@ import subprocess
 from pdb import set_trace as st
 
 
-ARCH_NAMES = archs.__all__
+ARCH_NAMES = ['UKAN']
 LOSS_NAMES = losses.__all__
 LOSS_NAMES.append('BCEWithLogitsLoss')
 
@@ -87,6 +87,10 @@ def parse_args():
     # dataset
     parser.add_argument('--dataset', default='busi', help='dataset name')      
     parser.add_argument('--data_dir', default='inputs', help='dataset dir')
+    
+    parser.add_argument('--image_dir', default=None, help='directory for images')
+    parser.add_argument('--mask_dir', default=None, help='directory for masks')
+
 
     parser.add_argument('--output_dir', default='outputs', help='ouput dir')
 
@@ -273,7 +277,7 @@ def main():
     cudnn.benchmark = True
 
     # create model
-    model = archs.__dict__[config['arch']](config['num_classes'], config['input_channels'], config['deep_supervision'], embed_dims=config['input_list'], no_kan=config['no_kan'])
+    model = archs.UKAN(config['num_classes'], config['input_channels'], config['deep_supervision'], embed_dims=config['input_list'], no_kan=config['no_kan'])
 
     model = model.cuda()
 
@@ -331,8 +335,9 @@ def main():
         mask_ext = '.png'
 
     # Data loading code
-    img_ids = sorted(glob(os.path.join(config['data_dir'], config['dataset'], 'images', '*' + img_ext)))
+    img_ids = sorted(glob(os.path.join(config['image_dir'], '*' + img_ext)))
     img_ids = [os.path.splitext(os.path.basename(p))[0] for p in img_ids]
+
 
     train_img_ids, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=config['dataseed'])
 
@@ -350,20 +355,22 @@ def main():
 
     train_dataset = Dataset(
         img_ids=train_img_ids,
-        img_dir=os.path.join(config['data_dir'], config['dataset'], 'images'),
-        mask_dir=os.path.join(config['data_dir'], config['dataset'], 'masks'),
+        img_dir=config['image_dir'],
+        mask_dir=config['mask_dir'],
         img_ext=img_ext,
         mask_ext=mask_ext,
         num_classes=config['num_classes'],
-        transform=train_transform)
+        transform=train_transform
+        )
     val_dataset = Dataset(
         img_ids=val_img_ids,
-        img_dir=os.path.join(config['data_dir'] ,config['dataset'], 'images'),
-        mask_dir=os.path.join(config['data_dir'], config['dataset'], 'masks'),
+        img_dir=config['image_dir'],
+        mask_dir=config['mask_dir'],
         img_ext=img_ext,
         mask_ext=mask_ext,
         num_classes=config['num_classes'],
-        transform=val_transform)
+        transform=val_transform
+        )
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
