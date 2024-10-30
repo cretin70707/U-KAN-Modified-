@@ -8,40 +8,6 @@ import torch.utils.data
 
 class Dataset(torch.utils.data.Dataset):
     def __init__(self, img_ids, img_dir, mask_dir, img_ext, mask_ext, num_classes, transform=None):
-        """
-        Args:
-            img_ids (list): Image ids.
-            img_dir: Image file directory.
-            mask_dir: Mask file directory.
-            img_ext (str): Image file extension.
-            mask_ext (str): Mask file extension.
-            num_classes (int): Number of classes.
-            transform (Compose, optional): Compose transforms of albumentations. Defaults to None.
-        
-        Note:
-            Make sure to put the files as the following structure:
-            <dataset name>
-            ├── images
-            |   ├── 0a7e06.jpg
-            │   ├── 0aab0a.jpg
-            │   ├── 0b1761.jpg
-            │   ├── ...
-            |
-            └── masks
-                ├── 0
-                |   ├── 0a7e06.png
-                |   ├── 0aab0a.png
-                |   ├── 0b1761.png
-                |   ├── ...
-                |
-                ├── 1
-                |   ├── 0a7e06.png
-                |   ├── 0aab0a.png
-                |   ├── 0b1761.png
-                |   ├── ...
-                ...
-        """
-        self.img_ids = img_ids
         self.img_dir = img_dir
         self.mask_dir = mask_dir
         self.img_ext = img_ext
@@ -49,34 +15,38 @@ class Dataset(torch.utils.data.Dataset):
         self.num_classes = num_classes
         self.transform = transform
 
+        # Filter img_ids to include only those that have corresponding masks
+        self.img_ids = [
+            img_id for img_id in img_ids
+            if os.path.exists(os.path.join(self.mask_dir, img_id + self.mask_ext))
+        ]
+
+        print(f"Filtered {len(self.img_ids)} valid image-mask pairs out of {len(img_ids)} images.")
+
     def __len__(self):
         return len(self.img_ids)
 
     def __getitem__(self, idx):
         img_id = self.img_ids[idx]
         
-        # Construct the full paths for image and mask
         img_path = os.path.join(self.img_dir, img_id + self.img_ext)
         mask_path = os.path.join(self.mask_dir, img_id + self.mask_ext)
 
-        # Read the image and mask
         img = cv2.imread(img_path)
-        mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)  # Load the mask in grayscale
+        mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
 
         if img is None:
             raise FileNotFoundError(f"Image not found at path: {img_path}")
         if mask is None:
             raise FileNotFoundError(f"Mask not found at path: {mask_path}")
 
-        # Expand dimensions of the mask to fit the expected shape
-        mask = mask[..., None]  # Add a channel dimension to the mask
+        mask = mask[..., None]
 
         if self.transform is not None:
             augmented = self.transform(image=img, mask=mask)
             img = augmented['image']
             mask = augmented['mask']
         
-        # Normalize and transpose the image and mask
         img = img.astype('float32') / 255
         img = img.transpose(2, 0, 1)
         mask = mask.astype('float32') / 255
@@ -86,4 +56,5 @@ class Dataset(torch.utils.data.Dataset):
             mask[mask > 0] = 1.0
 
         return img, mask, {'img_id': img_id}
+
 
