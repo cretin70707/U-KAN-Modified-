@@ -55,29 +55,35 @@ class Dataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         img_id = self.img_ids[idx]
         
-        img = cv2.imread(os.path.join(self.img_dir, img_id + self.img_ext))
+        # Construct the full paths for image and mask
+        img_path = os.path.join(self.img_dir, img_id + self.img_ext)
+        mask_path = os.path.join(self.mask_dir, img_id + self.mask_ext)
 
-        mask = []
-        for i in range(self.num_classes):
+        # Read the image and mask
+        img = cv2.imread(img_path)
+        mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)  # Load the mask in grayscale
 
-            # print(os.path.join(self.mask_dir, str(i),
-            #             img_id + self.mask_ext))
+        if img is None:
+            raise FileNotFoundError(f"Image not found at path: {img_path}")
+        if mask is None:
+            raise FileNotFoundError(f"Mask not found at path: {mask_path}")
 
-            mask.append(cv2.imread(os.path.join(self.mask_dir, str(i),
-                        img_id + self.mask_ext), cv2.IMREAD_GRAYSCALE)[..., None])
-        mask = np.dstack(mask)
+        # Expand dimensions of the mask to fit the expected shape
+        mask = mask[..., None]  # Add a channel dimension to the mask
 
         if self.transform is not None:
             augmented = self.transform(image=img, mask=mask)
             img = augmented['image']
             mask = augmented['mask']
         
+        # Normalize and transpose the image and mask
         img = img.astype('float32') / 255
         img = img.transpose(2, 0, 1)
         mask = mask.astype('float32') / 255
         mask = mask.transpose(2, 0, 1)
 
-        if mask.max()<1:
-            mask[mask>0] = 1.0
+        if mask.max() < 1:
+            mask[mask > 0] = 1.0
 
         return img, mask, {'img_id': img_id}
+
