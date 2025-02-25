@@ -1,13 +1,13 @@
-addict==2.4.0
+addict
 dataclasses
 pyyaml
 albumentations
 tensorboardX
-perceptual==0.1
-pillow==8.4.0
-scikit-image==0.17.2
-tifffile==2020.9.3
-timm==0.3.2
-typing-extensions==4.0.0
-yapf==0.31.0
+perceptual
+pillow
+scikit-image
+tifffile
+timm
+typing-extensions
+yapf
 
